@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Clock, Pause, Play, Square, Timer } from 'lucide-react';
+import { Clock, Pause, Play, Square, Timer, Hand } from 'lucide-react';
 import { Task } from '../types/task';
 import { formatTime, getProgressPercentage } from '../utils/timeUtils';
 import { Button } from './ui/button';
@@ -56,13 +55,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             } bg-card border-border`}
           >
             <CardContent className="p-3">
-              <input
-                type="text"
-                value={task.title}
-                onChange={handleTitleChange}
-                className="w-full font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
-                placeholder="Nome da tarefa..."
-              />
+              <div className="flex items-center gap-2">
+                <Hand className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  type="text"
+                  value={task.title}
+                  onChange={handleTitleChange}
+                  className="flex-1 font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
+                  placeholder="Nome da tarefa..."
+                />
+              </div>
             </CardContent>
           </Card>
         )}
@@ -85,9 +87,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-sm text-muted-foreground line-through">
-                  {task.title}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Hand className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="font-medium text-sm text-muted-foreground line-through">
+                    {task.title}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-3 h-3 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-mono">
@@ -115,13 +120,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           } ${task.isActive ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'} border-border`}
         >
           <CardHeader className="pb-2">
-            <input
-              type="text"
-              value={task.title}
-              onChange={handleTitleChange}
-              className="font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
-              placeholder="Nome da tarefa..."
-            />
+            <div className="flex items-center gap-2">
+              <Hand className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                type="text"
+                value={task.title}
+                onChange={handleTitleChange}
+                className="flex-1 font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
+                placeholder="Nome da tarefa..."
+              />
+            </div>
           </CardHeader>
           
           <CardContent className="pt-0">
