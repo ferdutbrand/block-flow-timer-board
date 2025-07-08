@@ -2,8 +2,9 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Task, Column } from '../types/task';
 import { TaskColumn } from './TaskColumn';
+import { FloatingHeader } from './FloatingHeader';
+import { CompactStats } from './CompactStats';
 import { useTimer } from '../hooks/useTimer';
-import { Clock, Target, CheckCircle } from 'lucide-react';
 
 const initialColumns: Column[] = [
   { id: 'todo', title: 'A Fazer', taskIds: [] },
@@ -60,6 +61,7 @@ export const TaskManager: React.FC = () => {
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [pausedTaskId, setPausedTaskId] = useState<string | null>(null);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Timer para tarefa ativa
   const { seconds: activeSeconds } = useTimer(
@@ -262,83 +264,47 @@ export const TaskManager: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            3 for time
-          </h1>
-          
-          {/* Estatísticas compactas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-lg font-semibold text-foreground">{todayStats.total}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Em Progresso</p>
-                  <p className="text-lg font-semibold text-foreground">{todayStats.inProgress}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Concluídas</p>
-                  <p className="text-lg font-semibold text-foreground">{todayStats.completed}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Tempo Total</p>
-                  <p className="text-lg font-semibold text-foreground">
-                    {Math.floor(todayStats.totalTime / 3600)}h {Math.floor((todayStats.totalTime % 3600) / 60)}m
-                  </p>
-                </div>
-              </div>
-            </div>
+    <div className="fixed inset-4 z-50 bg-background/95 backdrop-blur border border-border rounded-lg shadow-2xl overflow-hidden">
+      <FloatingHeader 
+        isMinimized={isMinimized}
+        onToggleMinimize={() => setIsMinimized(!isMinimized)}
+      />
+      
+      {!isMinimized && (
+        <div className="p-4 h-[calc(100vh-8rem)] overflow-auto">
+          <div className="mb-4">
+            <CompactStats stats={todayStats} />
           </div>
+
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['todo', 'doing', 'done'].map(columnId => {
+                const column = columns[columnId];
+                const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
+
+                return (
+                  <TaskColumn
+                    key={column.id}
+                    column={column}
+                    tasks={columnTasks}
+                    onUpdateTask={updateTask}
+                    onToggleTimer={toggleTimer}
+                    onTogglePause={togglePause}
+                    onStopTask={stopTask}
+                    onAddTask={addTask}
+                  />
+                );
+              })}
+            </div>
+          </DragDropContext>
         </div>
-
-        {/* Board */}
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {['todo', 'doing', 'done'].map(columnId => {
-              const column = columns[columnId];
-              const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
-
-              return (
-                <TaskColumn
-                  key={column.id}
-                  column={column}
-                  tasks={columnTasks}
-                  onUpdateTask={updateTask}
-                  onToggleTimer={toggleTimer}
-                  onTogglePause={togglePause}
-                  onStopTask={stopTask}
-                  onAddTask={addTask}
-                />
-              );
-            })}
-          </div>
-        </DragDropContext>
-      </div>
+      )}
+      
+      {isMinimized && (
+        <div className="p-4">
+          <CompactStats stats={todayStats} />
+        </div>
+      )}
     </div>
   );
 };
