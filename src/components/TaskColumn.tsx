@@ -26,41 +26,41 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
   onStopTask,
   onAddTask,
 }) => {
-  const getColumnColor = () => {
+  const getColumnStyles = () => {
     switch (column.id) {
       case 'todo':
-        return 'border-gray-300 bg-gray-50';
+        return 'border-border bg-card';
       case 'doing':
-        return 'border-blue-300 bg-blue-50';
+        return 'border-primary bg-primary/5 shadow-lg ring-1 ring-primary/20';
       case 'done':
-        return 'border-green-300 bg-green-50';
+        return 'border-border bg-muted/30';
       default:
-        return 'border-gray-300 bg-gray-50';
+        return 'border-border bg-card';
     }
   };
 
-  const getHeaderColor = () => {
+  const getHeaderStyles = () => {
     switch (column.id) {
       case 'todo':
-        return 'text-gray-700';
+        return 'text-muted-foreground';
       case 'doing':
-        return 'text-blue-700';
+        return 'text-primary font-semibold';
       case 'done':
-        return 'text-green-700';
+        return 'text-muted-foreground';
       default:
-        return 'text-gray-700';
+        return 'text-muted-foreground';
     }
   };
 
   return (
-    <Card className={`h-fit min-h-[400px] ${getColumnColor()}`}>
+    <Card className={`h-fit min-h-[400px] ${getColumnStyles()}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className={`text-lg ${getHeaderColor()}`}>
+          <CardTitle className={`text-lg ${getHeaderStyles()}`}>
             {column.title}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded-full">
+            <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded-full border">
               {tasks.length}
             </span>
             {column.id === 'todo' && (
@@ -68,9 +68,9 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
                 size="sm"
                 variant="ghost"
                 onClick={() => onAddTask(column.id)}
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3" />
               </Button>
             )}
           </div>
@@ -84,7 +84,7 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
               {...provided.droppableProps}
               ref={provided.innerRef}
               className={`min-h-[300px] transition-colors duration-200 ${
-                snapshot.isDraggingOver ? 'bg-white/50 rounded-lg' : ''
+                snapshot.isDraggingOver ? 'bg-accent/20 rounded-lg' : ''
               }`}
             >
               {tasks.map((task, index) => (
@@ -92,6 +92,7 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
                   key={task.id}
                   task={task}
                   index={index}
+                  columnId={column.id}
                   onUpdateTask={onUpdateTask}
                   onToggleTimer={onToggleTimer}
                   onTogglePause={onTogglePause}
@@ -101,7 +102,7 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
               {provided.placeholder}
               
               {tasks.length === 0 && (
-                <div className="flex items-center justify-center h-32 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
                   {column.id === 'todo' && 'Adicione uma nova tarefa'}
                   {column.id === 'doing' && 'Arraste tarefas aqui para começar'}
                   {column.id === 'done' && 'Tarefas concluídas aparecerão aqui'}

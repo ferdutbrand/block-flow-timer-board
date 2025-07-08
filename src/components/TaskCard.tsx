@@ -11,6 +11,7 @@ import { Badge } from './ui/badge';
 interface TaskCardProps {
   task: Task;
   index: number;
+  columnId: string;
   onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onToggleTimer: (taskId: string) => void;
   onTogglePause: (taskId: string) => void;
@@ -20,6 +21,7 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({
   task,
   index,
+  columnId,
   onUpdateTask,
   onToggleTimer,
   onTogglePause,
@@ -40,6 +42,67 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     onUpdateTask(task.id, { pauseDuration });
   };
 
+  // Card simplificado para "A Fazer"
+  if (columnId === 'todo') {
+    return (
+      <Draggable draggableId={task.id} index={index}>
+        {(provided, snapshot) => (
+          <Card
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className={`mb-3 transition-all duration-200 ${
+              snapshot.isDragging ? 'rotate-1 shadow-lg' : 'hover:shadow-md'
+            } bg-card border-border`}
+          >
+            <CardContent className="p-3">
+              <input
+                type="text"
+                value={task.title}
+                onChange={handleTitleChange}
+                className="w-full font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
+                placeholder="Nome da tarefa..."
+              />
+            </CardContent>
+          </Card>
+        )}
+      </Draggable>
+    );
+  }
+
+  // Card simplificado para "Feito"
+  if (columnId === 'done') {
+    return (
+      <Draggable draggableId={task.id} index={index}>
+        {(provided, snapshot) => (
+          <Card
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className={`mb-3 transition-all duration-200 ${
+              snapshot.isDragging ? 'rotate-1 shadow-lg' : 'hover:shadow-md'
+            } bg-muted/50 border-border opacity-75`}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm text-muted-foreground line-through">
+                  {task.title}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {formatTime(task.timeSpent)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </Draggable>
+    );
+  }
+
+  // Card completo para "Fazendo"
   return (
     <Draggable draggableId={task.id} index={index}>
       {(provided, snapshot) => (
@@ -48,15 +111,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={`mb-3 transition-all duration-200 ${
-            snapshot.isDragging ? 'rotate-2 shadow-lg' : 'hover:shadow-md'
-          } ${task.isActive ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+            snapshot.isDragging ? 'rotate-1 shadow-lg' : 'hover:shadow-md'
+          } ${task.isActive ? 'ring-2 ring-primary bg-primary/5' : 'bg-card'} border-border`}
         >
           <CardHeader className="pb-2">
             <input
               type="text"
               value={task.title}
               onChange={handleTitleChange}
-              className="font-medium text-sm bg-transparent border-none outline-none focus:bg-white focus:border focus:border-gray-300 rounded px-1 py-1"
+              className="font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
               placeholder="Nome da tarefa..."
             />
           </CardHeader>
@@ -77,10 +140,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </div>
 
             {/* Barra de progresso */}
-            <div className={`w-full bg-gray-200 rounded-full h-2 mb-3 ${isOvertime ? 'bg-red-100' : ''}`}>
+            <div className={`w-full bg-muted rounded-full h-2 mb-3 ${isOvertime ? 'bg-destructive/20' : ''}`}>
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  isOvertime ? 'bg-red-500' : 'bg-blue-500'
+                  isOvertime ? 'bg-destructive' : 'bg-primary'
                 }`}
                 style={{ width: `${Math.min(progressPercentage, 100)}%` }}
               />
@@ -89,12 +152,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             {/* Tempo principal */}
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" />
-                <span className={`font-mono text-sm ${isOvertime ? 'text-red-600' : 'text-gray-700'}`}>
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className={`font-mono text-sm ${isOvertime ? 'text-destructive' : 'text-foreground'}`}>
                   {formatTime(task.timeSpent)}
                 </span>
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 / {task.duration}min
               </span>
             </div>
@@ -102,8 +165,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             {/* Tempo de pausa */}
             {task.pauseTime > 0 && (
               <div className="flex items-center gap-2 mb-3">
-                <Timer className="w-4 h-4 text-orange-500" />
-                <span className="font-mono text-sm text-orange-600">
+                <Timer className="w-4 h-4 text-muted-foreground" />
+                <span className="font-mono text-sm text-muted-foreground">
                   Pausa: {formatTime(task.pauseTime)}
                 </span>
               </div>
@@ -124,38 +187,36 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </div>
 
             {/* Botões de controle */}
-            {task.status === 'doing' && (
-              <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3">
+              <Button
+                size="sm"
+                variant={task.isActive && !task.isPaused ? "destructive" : "default"}
+                onClick={() => onToggleTimer(task.id)}
+                className="flex-1"
+              >
+                {task.isActive && !task.isPaused ? (
+                  <>
+                    <Square className="w-3 h-3 mr-1" />
+                    Parar
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3 mr-1" />
+                    Iniciar
+                  </>
+                )}
+              </Button>
+              
+              {task.isActive && (
                 <Button
                   size="sm"
-                  variant={task.isActive && !task.isPaused ? "destructive" : "default"}
-                  onClick={() => onToggleTimer(task.id)}
-                  className="flex-1"
+                  variant="outline"
+                  onClick={() => onTogglePause(task.id)}
                 >
-                  {task.isActive && !task.isPaused ? (
-                    <>
-                      <Square className="w-3 h-3 mr-1" />
-                      Parar
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3 h-3 mr-1" />
-                      Iniciar
-                    </>
-                  )}
+                  <Pause className="w-3 h-3" />
                 </Button>
-                
-                {task.isActive && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onTogglePause(task.id)}
-                  >
-                    <Pause className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

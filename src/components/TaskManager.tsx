@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Task, Column } from '../types/task';
@@ -263,55 +262,52 @@ export const TaskManager: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Gerenciador de Tarefas
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            3 for time
           </h1>
-          <p className="text-gray-600 mb-4">
-            Organize seu tempo com blocos de tarefas e cronômetros inteligentes
-          </p>
           
-          {/* Estatísticas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
+          {/* Estatísticas compactas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-blue-500" />
+                <Target className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-600">Total</p>
-                  <p className="text-xl font-semibold">{todayStats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-lg font-semibold text-foreground">{todayStats.total}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-orange-500" />
+                <Clock className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-600">Em Progresso</p>
-                  <p className="text-xl font-semibold">{todayStats.inProgress}</p>
+                  <p className="text-xs text-muted-foreground">Em Progresso</p>
+                  <p className="text-lg font-semibold text-foreground">{todayStats.inProgress}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-600">Concluídas</p>
-                  <p className="text-xl font-semibold">{todayStats.completed}</p>
+                  <p className="text-xs text-muted-foreground">Concluídas</p>
+                  <p className="text-lg font-semibold text-foreground">{todayStats.completed}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg p-4 shadow-sm border">
+            <div className="bg-card rounded-lg p-3 shadow-sm border border-border">
               <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-purple-500" />
+                <Clock className="w-4 h-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-gray-600">Tempo Total</p>
-                  <p className="text-xl font-semibold">
+                  <p className="text-xs text-muted-foreground">Tempo Total</p>
+                  <p className="text-lg font-semibold text-foreground">
                     {Math.floor(todayStats.totalTime / 3600)}h {Math.floor((todayStats.totalTime % 3600) / 60)}m
                   </p>
                 </div>
