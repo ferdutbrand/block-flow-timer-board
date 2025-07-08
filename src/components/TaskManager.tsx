@@ -5,6 +5,7 @@ import { TaskColumn } from './TaskColumn';
 import { FloatingHeader } from './FloatingHeader';
 import { CompactStats } from './CompactStats';
 import { useTimer } from '../hooks/useTimer';
+import { useToast } from '@/hooks/use-toast';
 
 const initialColumns: Column[] = [
   { id: 'todo', title: 'A Fazer', taskIds: [] },
@@ -39,8 +40,61 @@ const initialTasks: Task[] = [
   },
 ];
 
+// Audio utility functions
+const playNotificationSound = () => {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+  oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+  
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.3);
+};
+
+const playAlarmSound = () => {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+  oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.4);
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.6);
+  
+  gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.8);
+};
+
 export const TaskManager: React.FC = () => {
+  const { toast } = useToast();
+  
+  // Load saved data from localStorage
   const [tasks, setTasks] = useState<{ [key: string]: Task }>(() => {
+    const savedTasks = localStorage.getItem('3fortime-tasks');
+    if (savedTasks) {
+      const parsedTasks = JSON.parse(savedTasks);
+      // Convert date strings back to Date objects
+      Object.keys(parsedTasks).forEach(key => {
+        parsedTasks[key].createdAt = new Date(parsedTasks[key].createdAt);
+      });
+      return parsedTasks;
+    }
+    
     const taskMap: { [key: string]: Task } = {};
     initialTasks.forEach(task => {
       taskMap[task.id] = task;
@@ -49,6 +103,11 @@ export const TaskManager: React.FC = () => {
   });
 
   const [columns, setColumns] = useState<{ [key: string]: Column }>(() => {
+    const savedColumns = localStorage.getItem('3fortime-columns');
+    if (savedColumns) {
+      return JSON.parse(savedColumns);
+    }
+    
     const columnMap: { [key: string]: Column } = {};
     initialColumns.forEach(column => {
       if (column.id === 'todo') {
@@ -59,15 +118,65 @@ export const TaskManager: React.FC = () => {
     return columnMap;
   });
 
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [pausedTaskId, setPausedTaskId] = useState<string | null>(null);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(() => {
+    const savedActiveTask = localStorage.getItem('3fortime-activeTask');
+    return savedActiveTask || null;
+  });
+  
+  const [pausedTaskId, setPausedTaskId] = useState<string | null>(() => {
+    const savedPausedTask = localStorage.getItem('3fortime-pausedTask');
+    return savedPausedTask || null;
+  });
+  
   const [isMinimized, setIsMinimized] = useState(false);
+  const [fiveMinuteWarningShown, setFiveMinuteWarningShown] = useState<{ [key: string]: boolean }>({});
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    localStorage.setItem('3fortime-tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('3fortime-columns', JSON.stringify(columns));
+  }, [columns]);
+
+  useEffect(() => {
+    localStorage.setItem('3fortime-activeTask', activeTaskId || '');
+  }, [activeTaskId]);
+
+  useEffect(() => {
+    localStorage.setItem('3fortime-pausedTask', pausedTaskId || '');
+  }, [pausedTaskId]);
 
   // Timer para tarefa ativa
   const { seconds: activeSeconds } = useTimer(
     activeTaskId !== null,
     useCallback((seconds) => {
       if (activeTaskId && !tasks[activeTaskId]?.isPaused) {
+        const task = tasks[activeTaskId];
+        const totalDurationSeconds = task.duration * 60;
+        const remainingSeconds = totalDurationSeconds - seconds;
+        
+        // Alert 5 minutes before end
+        if (remainingSeconds === 300 && !fiveMinuteWarningShown[activeTaskId]) {
+          playNotificationSound();
+          toast({
+            title: "⏰ 5 minutos restantes!",
+            description: `A tarefa "${task.title}" está quase acabando.`,
+          });
+          setFiveMinuteWarningShown(prev => ({ ...prev, [activeTaskId]: true }));
+        }
+        
+        // Alert when time is up
+        if (remainingSeconds <= 0 && seconds >= totalDurationSeconds) {
+          playAlarmSound();
+          toast({
+            title: "🔔 Tempo esgotado!",
+            description: `A tarefa "${task.title}" foi concluída.`,
+            variant: "destructive",
+          });
+        }
+        
         setTasks(prev => ({
           ...prev,
           [activeTaskId]: {
@@ -76,7 +185,7 @@ export const TaskManager: React.FC = () => {
           },
         }));
       }
-    }, [activeTaskId, tasks])
+    }, [activeTaskId, tasks, fiveMinuteWarningShown, toast])
   );
 
   // Timer para pausa
@@ -84,6 +193,29 @@ export const TaskManager: React.FC = () => {
     pausedTaskId !== null,
     useCallback((seconds) => {
       if (pausedTaskId) {
+        const task = tasks[pausedTaskId];
+        const totalPauseDurationSeconds = task.pauseDuration * 60;
+        const remainingSeconds = totalPauseDurationSeconds - seconds;
+        
+        // Alert 5 minutes before pause end (if pause duration > 5 minutes)
+        if (remainingSeconds === 300 && task.pauseDuration > 5 && !fiveMinuteWarningShown[`pause-${pausedTaskId}`]) {
+          playNotificationSound();
+          toast({
+            title: "⏰ Pausa quase acabando!",
+            description: `Faltam 5 minutos para retomar "${task.title}".`,
+          });
+          setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${pausedTaskId}`]: true }));
+        }
+        
+        // Alert when pause time is up
+        if (remainingSeconds <= 0 && seconds >= totalPauseDurationSeconds) {
+          playAlarmSound();
+          toast({
+            title: "🔔 Pausa finalizada!",
+            description: `Hora de retomar a tarefa "${task.title}".`,
+          });
+        }
+        
         setTasks(prev => ({
           ...prev,
           [pausedTaskId]: {
@@ -92,7 +224,7 @@ export const TaskManager: React.FC = () => {
           },
         }));
       }
-    }, [pausedTaskId])
+    }, [pausedTaskId, tasks, fiveMinuteWarningShown, toast])
   );
 
   const onDragEnd = (result: DropResult) => {
@@ -182,6 +314,7 @@ export const TaskManager: React.FC = () => {
       // Parar timer
       setActiveTaskId(null);
       updateTask(taskId, { isActive: false });
+      setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false }));
     } else {
       // Iniciar timer - parar outros primeiro
       setActiveTaskId(null);
@@ -201,6 +334,7 @@ export const TaskManager: React.FC = () => {
         isPaused: false,
         timeSpent: task.timeSpent || 0
       });
+      setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false }));
     }
   }, [tasks, updateTask]);
 
@@ -212,11 +346,13 @@ export const TaskManager: React.FC = () => {
       setPausedTaskId(null);
       setActiveTaskId(taskId);
       updateTask(taskId, { isPaused: false });
+      setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${taskId}`]: false }));
     } else {
       // Entrar na pausa
       setActiveTaskId(null);
       setPausedTaskId(taskId);
       updateTask(taskId, { isPaused: true });
+      setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${taskId}`]: false }));
     }
   }, [tasks, updateTask]);
 
@@ -224,6 +360,7 @@ export const TaskManager: React.FC = () => {
     setActiveTaskId(null);
     setPausedTaskId(null);
     updateTask(taskId, { isActive: false, isPaused: false });
+    setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false, [`pause-${taskId}`]: false }));
   }, [updateTask]);
 
   const addTask = useCallback((columnId: string) => {
