@@ -37,7 +37,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     onUpdateTask(task.id, { title: e.target.value });
   };
 
-  const handleDurationChange = (duration: 30 | 45 | 60) => {
+  const handleDurationChange = (duration: number) => {
     onUpdateTask(task.id, { duration });
   };
 
@@ -184,7 +184,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   key={duration}
                   variant={task.duration === duration ? "default" : "outline"}
                   className="cursor-pointer text-xs"
-                  onClick={() => handleDurationChange(duration as 30 | 45 | 60)}
+                  onClick={() => handleDurationChange(duration)}
                 >
                   {formatDurationDisplay(duration)}
                 </Badge>
