@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Settings, Palette, Type, Upload, Moon, Sun, Monitor } from 'lucide-react';
+import { Settings, Palette, Type, Upload, Moon, Sun, Monitor, Layers } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import {
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { useTheme } from '../hooks/useTheme';
+import { DesignSystemPanel } from './DesignSystemPanel';
 
 export const SettingsMenu: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -19,6 +21,7 @@ export const SettingsMenu: React.FC = () => {
   const [showColorSettings, setShowColorSettings] = useState(false);
   const [showLogoSettings, setShowLogoSettings] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
+  const [showDesignSystem, setShowDesignSystem] = useState(false);
 
   return (
     <>
@@ -47,6 +50,11 @@ export const SettingsMenu: React.FC = () => {
               )}
             </DropdownMenuItem>
             
+            <DropdownMenuItem onClick={() => setShowDesignSystem(true)}>
+              <Layers className="mr-2 h-4 w-4" />
+              Design System
+            </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setShowFontSettings(true)}>
               <Type className="mr-2 h-4 w-4" />
               Tipografia
@@ -69,6 +77,12 @@ export const SettingsMenu: React.FC = () => {
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Design System Panel */}
+      <DesignSystemPanel 
+        open={showDesignSystem} 
+        onOpenChange={setShowDesignSystem} 
+      />
 
       {/* Font Settings Dialog */}
       <FontSettingsDialog 
