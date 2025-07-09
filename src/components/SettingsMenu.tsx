@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, Palette, Type, Upload, Moon, Sun } from 'lucide-react';
+import { Settings, Palette, Type, Upload, Moon, Sun, Monitor } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ export const SettingsMenu: React.FC = () => {
   const [showFontSettings, setShowFontSettings] = useState(false);
   const [showColorSettings, setShowColorSettings] = useState(false);
   const [showLogoSettings, setShowLogoSettings] = useState(false);
+  const [showLayoutSettings, setShowLayoutSettings] = useState(false);
 
   return (
     <>
@@ -57,6 +58,11 @@ export const SettingsMenu: React.FC = () => {
               Cores
             </DropdownMenuItem>
             
+            <DropdownMenuItem onClick={() => setShowLayoutSettings(true)}>
+              <Monitor className="mr-2 h-4 w-4" />
+              Layout
+            </DropdownMenuItem>
+            
             <DropdownMenuItem onClick={() => setShowLogoSettings(true)}>
               <Upload className="mr-2 h-4 w-4" />
               Logotipo
@@ -77,6 +83,12 @@ export const SettingsMenu: React.FC = () => {
         onOpenChange={setShowColorSettings} 
       />
       
+      {/* Layout Settings Dialog */}
+      <LayoutSettingsDialog 
+        open={showLayoutSettings} 
+        onOpenChange={setShowLayoutSettings} 
+      />
+      
       {/* Logo Settings Dialog */}
       <LogoSettingsDialog 
         open={showLogoSettings} 
@@ -87,8 +99,24 @@ export const SettingsMenu: React.FC = () => {
 };
 
 const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
-  const [fontSize, setFontSize] = useState('medium');
-  const [fontFamily, setFontFamily] = useState('Inter');
+  const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'medium');
+  const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('fontFamily') || 'Inter');
+
+  const googleFonts = [
+    'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 
+    'Source Sans Pro', 'Oswald', 'Raleway', 'Nunito Sans', 'PT Sans',
+    'Merriweather', 'Playfair Display', 'Lora', 'Crimson Text'
+  ];
+
+  const loadGoogleFont = (fontName: string) => {
+    const existingLink = document.querySelector(`link[href*="${fontName.replace(' ', '+')}"]`);
+    if (!existingLink) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(' ', '+')}:wght@400;500;600;700&display=swap`;
+      document.head.appendChild(link);
+    }
+  };
 
   const applyFontSettings = () => {
     const root = document.documentElement;
@@ -106,8 +134,12 @@ const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
         break;
     }
     
-    // Apply font family
-    root.style.fontFamily = fontFamily;
+    // Load and apply Google Font
+    if (googleFonts.includes(fontFamily)) {
+      loadGoogleFont(fontFamily);
+    }
+    
+    root.style.fontFamily = `"${fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`;
     
     localStorage.setItem('fontSize', fontSize);
     localStorage.setItem('fontFamily', fontFamily);
@@ -155,12 +187,9 @@ const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
               onChange={(e) => setFontFamily(e.target.value)}
               className="w-full mt-2 p-2 border rounded-md bg-background"
             >
-              <option value="Inter">Inter</option>
-              <option value="Arial">Arial</option>
-              <option value="Helvetica">Helvetica</option>
-              <option value="Times New Roman">Times New Roman</option>
-              <option value="Georgia">Georgia</option>
-              <option value="Courier New">Courier New</option>
+              {googleFonts.map(font => (
+                <option key={font} value={font}>{font}</option>
+              ))}
             </select>
           </div>
           
@@ -174,14 +203,51 @@ const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
 };
 
 const ColorSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
-  const [primaryColor, setPrimaryColor] = useState('#000000');
+  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('primaryColor') || '#000000');
+  const [backgroundColor, setBackgroundColor] = useState(() => localStorage.getItem('backgroundColor') || '#ffffff');
+
+  const validateColor = (hex: string, type: 'primary' | 'background'): boolean => {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    // Convert to HSL
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    
+    let s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    }
+
+    if (type === 'background') {
+      // Background: max 20% luminosity and 60% saturation
+      return l <= 0.2 && s <= 0.6;
+    }
+    
+    return true; // Primary color has no restrictions
+  };
 
   const applyColorSettings = () => {
+    if (!validateColor(backgroundColor, 'background')) {
+      alert('A cor de fundo deve ter no máximo 20% de luminosidade e 60% de saturação para garantir legibilidade.');
+      return;
+    }
+
     const root = document.documentElement;
-    const hsl = hexToHsl(primaryColor);
-    root.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+    
+    // Apply primary color
+    const primaryHsl = hexToHsl(primaryColor);
+    root.style.setProperty('--primary', `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
+    
+    // Apply background color
+    const backgroundHsl = hexToHsl(backgroundColor);
+    root.style.setProperty('--background', `${backgroundHsl.h} ${backgroundHsl.s}% ${backgroundHsl.l}%`);
     
     localStorage.setItem('primaryColor', primaryColor);
+    localStorage.setItem('backgroundColor', backgroundColor);
     onOpenChange(false);
   };
 
@@ -237,8 +303,75 @@ const ColorSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolea
               />
             </div>
           </div>
+
+          <div>
+            <label className="text-sm font-medium">Cor de Fundo</label>
+            <div className="flex gap-2 mt-2">
+              <input
+                type="color"
+                value={backgroundColor}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                className="w-12 h-10 border rounded-md"
+              />
+              <input
+                type="text"
+                value={backgroundColor}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                className="flex-1 p-2 border rounded-md bg-background"
+                placeholder="#ffffff"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Máx. 20% luminosidade e 60% saturação
+            </p>
+          </div>
           
           <Button onClick={applyColorSettings} className="w-full">
+            Aplicar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const LayoutSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
+  const [windowPosition, setWindowPosition] = useState(() => localStorage.getItem('windowPosition') || 'left');
+
+  const applyLayoutSettings = () => {
+    localStorage.setItem('windowPosition', windowPosition);
+    // This would be applied when the window is in minimized/anchored mode
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Configurações de Layout</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Posição da Janela Ancorada</label>
+            <div className="flex gap-2 mt-2">
+              <Button
+                variant={windowPosition === 'left' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setWindowPosition('left')}
+              >
+                Esquerda
+              </Button>
+              <Button
+                variant={windowPosition === 'right' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setWindowPosition('right')}
+              >
+                Direita
+              </Button>
+            </div>
+          </div>
+          
+          <Button onClick={applyLayoutSettings} className="w-full">
             Aplicar
           </Button>
         </div>

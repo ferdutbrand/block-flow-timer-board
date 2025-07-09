@@ -392,12 +392,13 @@ export const TaskManager: React.FC = () => {
     }));
   }, []);
 
-  // Estatísticas do dia
+  // Estatísticas do dia - apenas tarefas concluídas
+  const completedTasks = Object.values(tasks).filter(task => task.status === 'done');
   const todayStats = {
     total: Object.keys(tasks).length,
-    completed: Object.values(tasks).filter(task => task.status === 'done').length,
+    completed: completedTasks.length,
     inProgress: Object.values(tasks).filter(task => task.status === 'doing').length,
-    totalTime: Object.values(tasks).reduce((acc, task) => acc + task.timeSpent, 0),
+    totalTime: completedTasks.reduce((acc, task) => acc + task.timeSpent, 0),
   };
 
   return (

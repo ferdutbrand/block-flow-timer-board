@@ -1,6 +1,7 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Clock, Pause, Play, Square, Timer, Hand } from 'lucide-react';
+import { Clock, Pause, Play, Square, Timer, Hand, RotateCcw } from 'lucide-react';
 import { Task } from '../types/task';
 import { formatTime, getProgressPercentage } from '../utils/timeUtils';
 import { Button } from './ui/button';
@@ -26,6 +27,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onTogglePause,
   onStopTask,
 }) => {
+  const [customTime, setCustomTime] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  
   const progressPercentage = getProgressPercentage(task.timeSpent, task.duration);
   const isOvertime = task.timeSpent > task.duration * 60;
 
@@ -39,6 +43,46 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   const handlePauseDurationChange = (pauseDuration: 5 | 15 | 30) => {
     onUpdateTask(task.id, { pauseDuration });
+  };
+
+  const handleResetTime = () => {
+    onUpdateTask(task.id, { timeSpent: 0, pauseTime: 0 });
+  };
+
+  const handleCustomTimeSubmit = () => {
+    const timeInMinutes = parseCustomTime(customTime);
+    if (timeInMinutes > 0) {
+      onUpdateTask(task.id, { duration: timeInMinutes });
+      setCustomTime('');
+      setShowCustomInput(false);
+    }
+  };
+
+  const parseCustomTime = (timeStr: string): number => {
+    const cleaned = timeStr.toLowerCase().trim();
+    
+    // Handle formats like "1h30m", "1h30", "90m", "90"
+    const hourMinuteMatch = cleaned.match(/(\d+)h(?:(\d+)m?)?/);
+    if (hourMinuteMatch) {
+      const hours = parseInt(hourMinuteMatch[1]);
+      const minutes = hourMinuteMatch[2] ? parseInt(hourMinuteMatch[2]) : 0;
+      return hours * 60 + minutes;
+    }
+    
+    // Handle formats like "30m", "30"
+    const minuteMatch = cleaned.match(/(\d+)m?/);
+    if (minuteMatch) {
+      return parseInt(minuteMatch[1]);
+    }
+    
+    return 0;
+  };
+
+  const formatDurationDisplay = (minutes: number): string => {
+    if (minutes >= 60 && minutes % 60 === 0) {
+      return `${minutes / 60}h`;
+    }
+    return `${minutes}m`;
   };
 
   // Card simplificado para "A Fazer"
@@ -142,9 +186,43 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   className="cursor-pointer text-xs"
                   onClick={() => handleDurationChange(duration as 30 | 45 | 60)}
                 >
-                  {duration}min
+                  {formatDurationDisplay(duration)}
                 </Badge>
               ))}
+              
+              {!showCustomInput ? (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer text-xs"
+                  onClick={() => setShowCustomInput(true)}
+                >
+                  +
+                </Badge>
+              ) : (
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    placeholder="ex: 1h30m"
+                    className="w-16 text-xs px-1 py-0.5 border rounded bg-background"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCustomTimeSubmit();
+                      if (e.key === 'Escape') {
+                        setShowCustomInput(false);
+                        setCustomTime('');
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleCustomTimeSubmit}
+                    className="text-xs px-1 py-0.5 border rounded bg-primary text-primary-foreground"
+                  >
+                    ✓
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Barra de progresso */}
@@ -166,7 +244,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
-                / {task.duration}min
+                / {formatDurationDisplay(task.duration)}
               </span>
             </div>
 
@@ -189,7 +267,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   className="cursor-pointer text-xs"
                   onClick={() => handlePauseDurationChange(pauseDuration as 5 | 15 | 30)}
                 >
-                  {pauseDuration}min pausa
+                  {formatDurationDisplay(pauseDuration)} pausa
                 </Badge>
               ))}
             </div>
@@ -224,6 +302,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   <Pause className="w-3 h-3" />
                 </Button>
               )}
+              
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleResetTime}
+                title="Resetar tempo"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </Button>
             </div>
           </CardContent>
         </Card>
