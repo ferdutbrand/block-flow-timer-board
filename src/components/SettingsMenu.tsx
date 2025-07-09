@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, Palette, Type, Upload, Moon, Sun, Monitor, Layers } from 'lucide-react';
+import { Settings, Palette, Type, Upload, Moon, Sun, Monitor, Copy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,16 +12,17 @@ import {
 } from './ui/dropdown-menu';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
 import { useTheme } from '../hooks/useTheme';
-import { DesignSystemPanel } from './DesignSystemPanel';
 
 export const SettingsMenu: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const [showFontSettings, setShowFontSettings] = useState(false);
-  const [showColorSettings, setShowColorSettings] = useState(false);
-  const [showLogoSettings, setShowLogoSettings] = useState(false);
+  const [showDesignSettings, setShowDesignSettings] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
-  const [showDesignSystem, setShowDesignSystem] = useState(false);
+  const [showLogoSettings, setShowLogoSettings] = useState(false);
 
   return (
     <>
@@ -50,19 +51,9 @@ export const SettingsMenu: React.FC = () => {
               )}
             </DropdownMenuItem>
             
-            <DropdownMenuItem onClick={() => setShowDesignSystem(true)}>
-              <Layers className="mr-2 h-4 w-4" />
-              Design System
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={() => setShowFontSettings(true)}>
-              <Type className="mr-2 h-4 w-4" />
-              Tipografia
-            </DropdownMenuItem>
-            
-            <DropdownMenuItem onClick={() => setShowColorSettings(true)}>
+            <DropdownMenuItem onClick={() => setShowDesignSettings(true)}>
               <Palette className="mr-2 h-4 w-4" />
-              Cores
+              Design & Cores
             </DropdownMenuItem>
             
             <DropdownMenuItem onClick={() => setShowLayoutSettings(true)}>
@@ -78,22 +69,10 @@ export const SettingsMenu: React.FC = () => {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Design System Panel */}
-      <DesignSystemPanel 
-        open={showDesignSystem} 
-        onOpenChange={setShowDesignSystem} 
-      />
-
-      {/* Font Settings Dialog */}
-      <FontSettingsDialog 
-        open={showFontSettings} 
-        onOpenChange={setShowFontSettings} 
-      />
-      
-      {/* Color Settings Dialog */}
-      <ColorSettingsDialog 
-        open={showColorSettings} 
-        onOpenChange={setShowColorSettings} 
+      {/* Design Settings Dialog - Fusão do Design System */}
+      <DesignSettingsDialog 
+        open={showDesignSettings} 
+        onOpenChange={setShowDesignSettings} 
       />
       
       {/* Layout Settings Dialog */}
@@ -111,9 +90,14 @@ export const SettingsMenu: React.FC = () => {
   );
 };
 
-const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
+const DesignSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'medium');
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('fontFamily') || 'Inter');
+  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('primaryColor') || '#000000');
+  const [selectedBackgroundHsl, setSelectedBackgroundHsl] = useState(() => {
+    const saved = localStorage.getItem('selectedBackgroundHsl');
+    return saved || '0 0% 0%';
+  });
 
   const googleFonts = [
     'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 
@@ -121,108 +105,6 @@ const FontSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
     'Merriweather', 'Playfair Display', 'Lora', 'Crimson Text'
   ];
 
-  const loadGoogleFont = (fontName: string) => {
-    const existingLink = document.querySelector(`link[href*="${fontName.replace(' ', '+')}"]`);
-    if (!existingLink) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(' ', '+')}:wght@400;500;600;700&display=swap`;
-      document.head.appendChild(link);
-    }
-  };
-
-  const applyFontSettings = () => {
-    const root = document.documentElement;
-    
-    // Apply font size
-    switch (fontSize) {
-      case 'small':
-        root.style.fontSize = '14px';
-        break;
-      case 'medium':
-        root.style.fontSize = '16px';
-        break;
-      case 'large':
-        root.style.fontSize = '18px';
-        break;
-    }
-    
-    // Load and apply Google Font
-    if (googleFonts.includes(fontFamily)) {
-      loadGoogleFont(fontFamily);
-    }
-    
-    root.style.fontFamily = `"${fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`;
-    
-    localStorage.setItem('fontSize', fontSize);
-    localStorage.setItem('fontFamily', fontFamily);
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Configurações de Tipografia</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Tamanho da Fonte</label>
-            <div className="flex gap-2 mt-2">
-              <Button
-                variant={fontSize === 'small' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFontSize('small')}
-              >
-                A
-              </Button>
-              <Button
-                variant={fontSize === 'medium' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFontSize('medium')}
-              >
-                AA
-              </Button>
-              <Button
-                variant={fontSize === 'large' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFontSize('large')}
-              >
-                AAA
-              </Button>
-            </div>
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Tipografia</label>
-            <select
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="w-full mt-2 p-2 border rounded-md bg-background"
-            >
-              {googleFonts.map(font => (
-                <option key={font} value={font}>{font}</option>
-              ))}
-            </select>
-          </div>
-          
-          <Button onClick={applyFontSettings} className="w-full">
-            Aplicar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const ColorSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean) => void }> = ({ open, onOpenChange }) => {
-  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('primaryColor') || '#000000');
-  const [selectedBackgroundHsl, setSelectedBackgroundHsl] = useState(() => {
-    const saved = localStorage.getItem('selectedBackgroundHsl');
-    return saved || '0 0% 0%'; // Default to pure black
-  });
-
-  // 15 predefined background colors respecting max 60% saturation and 20% luminosity
   const predefinedBackgrounds = [
     { name: 'Preto Puro', hsl: '0 0% 0%', hex: '#000000' },
     { name: 'Cinza Escuro', hsl: '0 0% 10%', hex: '#1a1a1a' },
@@ -241,19 +123,14 @@ const ColorSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolea
     { name: 'Amarelo Terroso', hsl: '45 40% 20%', hex: '#474026' }
   ];
 
-  const applyColorSettings = () => {
-    const root = document.documentElement;
-    
-    // Apply primary color
-    const primaryHsl = hexToHsl(primaryColor);
-    root.style.setProperty('--primary', `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
-    
-    // Apply selected background color
-    root.style.setProperty('--background', selectedBackgroundHsl);
-    
-    localStorage.setItem('primaryColor', primaryColor);
-    localStorage.setItem('selectedBackgroundHsl', selectedBackgroundHsl);
-    onOpenChange(false);
+  const loadGoogleFont = (fontName: string) => {
+    const existingLink = document.querySelector(`link[href*="${fontName.replace(' ', '+')}"]`);
+    if (!existingLink) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(' ', '+')}:wght@400;500;600;700&display=swap`;
+      document.head.appendChild(link);
+    }
   };
 
   const hexToHsl = (hex: string) => {
@@ -283,61 +160,195 @@ const ColorSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolea
     };
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const applyAllSettings = () => {
+    const root = document.documentElement;
+    
+    // Apply font settings
+    switch (fontSize) {
+      case 'small':
+        root.style.fontSize = '14px';
+        break;
+      case 'medium':
+        root.style.fontSize = '16px';
+        break;
+      case 'large':
+        root.style.fontSize = '18px';
+        break;
+    }
+    
+    if (googleFonts.includes(fontFamily)) {
+      loadGoogleFont(fontFamily);
+    }
+    root.style.fontFamily = `"${fontFamily}", -apple-system, BlinkMacSystemFont, sans-serif`;
+    
+    // Apply color settings
+    const primaryHsl = hexToHsl(primaryColor);
+    root.style.setProperty('--primary', `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
+    root.style.setProperty('--background', selectedBackgroundHsl);
+    
+    // Save to localStorage
+    localStorage.setItem('fontSize', fontSize);
+    localStorage.setItem('fontFamily', fontFamily);
+    localStorage.setItem('primaryColor', primaryColor);
+    localStorage.setItem('selectedBackgroundHsl', selectedBackgroundHsl);
+    
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configurações de Cores</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Design & Cores
+          </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Cor Principal</label>
-            <div className="flex gap-2 mt-2">
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="w-12 h-10 border rounded-md"
-              />
-              <input
-                type="text"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="flex-1 p-2 border rounded-md bg-background"
-                placeholder="#000000"
-              />
-            </div>
-          </div>
+        
+        <div className="space-y-6">
+          {/* Tipografia */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Type className="h-4 w-4" />
+                Tipografia
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Tamanho da Fonte</Label>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    variant={fontSize === 'small' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFontSize('small')}
+                  >
+                    A
+                  </Button>
+                  <Button
+                    variant={fontSize === 'medium' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFontSize('medium')}
+                  >
+                    AA
+                  </Button>
+                  <Button
+                    variant={fontSize === 'large' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFontSize('large')}
+                  >
+                    AAA
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium">Fonte</Label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="w-full mt-2 p-2 border rounded-md bg-background"
+                >
+                  {googleFonts.map(font => (
+                    <option key={font} value={font}>{font}</option>
+                  ))}
+                </select>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div>
-            <label className="text-sm font-medium">Cor de Fundo</label>
-            <p className="text-xs text-muted-foreground mb-3">
-              Selecione uma das cores predefinidas
-            </p>
-            <div className="grid grid-cols-5 gap-2">
-              {predefinedBackgrounds.map((bg) => (
-                <button
-                  key={bg.hsl}
-                  className={`w-12 h-12 rounded-md border-2 transition-all ${
-                    selectedBackgroundHsl === bg.hsl 
-                      ? 'border-primary ring-2 ring-primary/20' 
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                  style={{ backgroundColor: bg.hex }}
-                  onClick={() => setSelectedBackgroundHsl(bg.hsl)}
-                  title={bg.name}
-                />
-              ))}
-            </div>
-            <div className="mt-2 text-xs text-muted-foreground">
-              Selecionado: {predefinedBackgrounds.find(bg => bg.hsl === selectedBackgroundHsl)?.name}
-            </div>
-          </div>
-          
-          <Button onClick={applyColorSettings} className="w-full">
-            Aplicar
-          </Button>
+          {/* Cores */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Palette className="h-4 w-4" />
+                Cores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium">Cor Principal</Label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-12 h-10 border rounded-md"
+                  />
+                  <Input
+                    type="text"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    placeholder="#000000"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">Cor de Fundo</Label>
+                <div className="grid grid-cols-5 gap-2 mt-2">
+                  {predefinedBackgrounds.map((bg) => (
+                    <button
+                      key={bg.hsl}
+                      className={`w-12 h-12 rounded-md border-2 transition-all ${
+                        selectedBackgroundHsl === bg.hsl 
+                          ? 'border-primary ring-2 ring-primary/20' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      style={{ backgroundColor: bg.hex }}
+                      onClick={() => setSelectedBackgroundHsl(bg.hsl)}
+                      title={bg.name}
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Selecionado: {predefinedBackgrounds.find(bg => bg.hsl === selectedBackgroundHsl)?.name}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preview dos Componentes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Botões</Label>
+                <div className="flex gap-2 flex-wrap">
+                  <Button variant="default">Primário</Button>
+                  <Button variant="secondary">Secundário</Button>
+                  <Button variant="outline">Contorno</Button>
+                  <Button variant="ghost">Fantasma</Button>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Badges</Label>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="default">Padrão</Badge>
+                  <Badge variant="secondary">Secundário</Badge>
+                  <Badge variant="outline">Contorno</Badge>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Campo de Entrada</Label>
+                <Input placeholder="Digite algo aqui..." />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+        
+        <Button onClick={applyAllSettings} className="w-full mt-6">
+          Aplicar Todas as Configurações
+        </Button>
       </DialogContent>
     </Dialog>
   );
@@ -348,7 +359,6 @@ const LayoutSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boole
 
   const applyLayoutSettings = () => {
     localStorage.setItem('windowPosition', windowPosition);
-    // This would be applied when the window is in minimized/anchored mode
     onOpenChange(false);
   };
 
@@ -360,7 +370,7 @@ const LayoutSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boole
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Posição da Janela Ancorada</label>
+            <Label className="text-sm font-medium">Posição da Janela Ancorada</Label>
             <div className="flex gap-2 mt-2">
               <Button
                 variant={windowPosition === 'left' ? 'default' : 'outline'}
@@ -406,7 +416,6 @@ const LogoSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
       reader.onload = (e) => {
         const logoData = e.target?.result as string;
         localStorage.setItem('customLogo', logoData);
-        // Trigger logo update in header
         window.dispatchEvent(new CustomEvent('logoChanged', { detail: logoData }));
       };
       reader.readAsDataURL(logoFile);
@@ -422,7 +431,7 @@ const LogoSettingsDialog: React.FC<{ open: boolean; onOpenChange: (open: boolean
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Upload SVG</label>
+            <Label className="text-sm font-medium">Upload SVG</Label>
             <input
               type="file"
               accept=".svg"
