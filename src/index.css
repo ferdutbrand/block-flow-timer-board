@@ -47,6 +47,10 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Contrast variables for auto-adjustment */
+    --text-contrast: 222.2 84% 4.9%;
+    --text-contrast-muted: 215.4 16.3% 46.9%;
   }
 
   .dark {
@@ -85,6 +89,9 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --text-contrast: 210 40% 98%;
+    --text-contrast-muted: 215 20.2% 65.1%;
   }
 }
 
@@ -96,10 +103,49 @@ All colors MUST be HSL.
   body {
     @apply bg-transparent text-foreground;
   }
+
+  /* Custom scrollbar styles */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--background));
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) hsl(var(--background));
+  }
 }
 
-/* Floating app styles */
+/* Auto-contrast text utilities */
 @layer utilities {
+  .text-auto-contrast {
+    color: hsl(var(--text-contrast));
+  }
+
+  .text-auto-contrast-muted {
+    color: hsl(var(--text-contrast-muted));
+  }
+
   .floating-container {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);

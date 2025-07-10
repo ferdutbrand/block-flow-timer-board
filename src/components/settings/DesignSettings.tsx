@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { TypographySettings } from './TypographySettings';
 import { ColorSettings } from './ColorSettings';
 import { ComponentPreview } from './ComponentPreview';
+import { useTheme } from '../../hooks/useTheme';
 
 interface DesignSettingsProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface DesignSettingsProps {
 }
 
 export const DesignSettings: React.FC<DesignSettingsProps> = ({ open, onOpenChange }) => {
+  const { theme, updateContrastVariables } = useTheme();
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'medium');
   const [fontFamily, setFontFamily] = useState(() => localStorage.getItem('fontFamily') || 'Inter');
   const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('primaryColor') || '#000000');
@@ -25,17 +27,8 @@ export const DesignSettings: React.FC<DesignSettingsProps> = ({ open, onOpenChan
     const root = document.documentElement;
     
     // Apply font settings
-    switch (fontSize) {
-      case 'small':
-        root.style.fontSize = '14px';
-        break;
-      case 'medium':
-        root.style.fontSize = '16px';
-        break;
-      case 'large':
-        root.style.fontSize = '18px';
-        break;
-    }
+    const fontSizes = { small: '14px', medium: '16px', large: '18px' };
+    root.style.fontSize = fontSizes[fontSize as keyof typeof fontSizes];
     
     const googleFonts = [
       'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 
@@ -75,16 +68,15 @@ export const DesignSettings: React.FC<DesignSettingsProps> = ({ open, onOpenChan
         h /= 6;
       }
 
-      return {
-        h: Math.round(h * 360),
-        s: Math.round(s * 100),
-        l: Math.round(l * 100)
-      };
+      return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
     };
 
     const primaryHsl = hexToHsl(primaryColor);
     root.style.setProperty('--primary', `${primaryHsl.h} ${primaryHsl.s}% ${primaryHsl.l}%`);
     root.style.setProperty('--background', selectedBackgroundHsl);
+    
+    // Update contrast variables based on background
+    updateContrastVariables(selectedBackgroundHsl, theme === 'dark');
     
     // Save to localStorage
     localStorage.setItem('fontSize', fontSize);
