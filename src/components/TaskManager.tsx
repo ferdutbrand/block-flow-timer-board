@@ -6,6 +6,8 @@ import { FloatingHeader } from './FloatingHeader';
 import { CompactStats } from './CompactStats';
 import { CalendarBlock } from './CalendarBlock';
 import { NotesBlock } from './NotesBlock';
+import { CalculatorBlock } from './CalculatorBlock';
+import { EmailBlock } from './EmailBlock';
 import { useTimer } from '../hooks/useTimer';
 import { useToast } from '@/hooks/use-toast';
 
