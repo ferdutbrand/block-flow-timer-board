@@ -4,6 +4,8 @@ import { Task, Column } from '../types/task';
 import { TaskColumn } from './TaskColumn';
 import { FloatingHeader } from './FloatingHeader';
 import { CompactStats } from './CompactStats';
+import { CalendarBlock } from './CalendarBlock';
+import { NotesBlock } from './NotesBlock';
 import { useTimer } from '../hooks/useTimer';
 import { useToast } from '@/hooks/use-toast';
 
@@ -88,7 +90,6 @@ export const TaskManager: React.FC = () => {
     const savedTasks = localStorage.getItem('3fortime-tasks');
     if (savedTasks) {
       const parsedTasks = JSON.parse(savedTasks);
-      // Convert date strings back to Date objects
       Object.keys(parsedTasks).forEach(key => {
         parsedTasks[key].createdAt = new Date(parsedTasks[key].createdAt);
       });
@@ -157,7 +158,6 @@ export const TaskManager: React.FC = () => {
         const totalDurationSeconds = task.duration * 60;
         const remainingSeconds = totalDurationSeconds - seconds;
         
-        // Alert 5 minutes before end
         if (remainingSeconds === 300 && !fiveMinuteWarningShown[activeTaskId]) {
           playNotificationSound();
           toast({
@@ -167,7 +167,6 @@ export const TaskManager: React.FC = () => {
           setFiveMinuteWarningShown(prev => ({ ...prev, [activeTaskId]: true }));
         }
         
-        // Alert when time is up
         if (remainingSeconds <= 0 && seconds >= totalDurationSeconds) {
           playAlarmSound();
           toast({
@@ -197,7 +196,6 @@ export const TaskManager: React.FC = () => {
         const totalPauseDurationSeconds = task.pauseDuration * 60;
         const remainingSeconds = totalPauseDurationSeconds - seconds;
         
-        // Alert 5 minutes before pause end (if pause duration > 5 minutes)
         if (remainingSeconds === 300 && task.pauseDuration > 5 && !fiveMinuteWarningShown[`pause-${pausedTaskId}`]) {
           playNotificationSound();
           toast({
@@ -207,7 +205,6 @@ export const TaskManager: React.FC = () => {
           setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${pausedTaskId}`]: true }));
         }
         
-        // Alert when pause time is up
         if (remainingSeconds <= 0 && seconds >= totalPauseDurationSeconds) {
           playAlarmSound();
           toast({
@@ -259,7 +256,6 @@ export const TaskManager: React.FC = () => {
       return;
     }
 
-    // Moving from one column to another
     const startTaskIds = Array.from(start.taskIds);
     startTaskIds.splice(source.index, 1);
     const newStart = {
@@ -274,7 +270,6 @@ export const TaskManager: React.FC = () => {
       taskIds: finishTaskIds,
     };
 
-    // Update task status
     const updatedTask = {
       ...tasks[draggableId],
       status: destination.droppableId as 'todo' | 'doing' | 'done',
@@ -282,7 +277,6 @@ export const TaskManager: React.FC = () => {
       isPaused: false,
     };
 
-    // Se mover para "doing", parar outras tarefas ativas
     if (destination.droppableId === 'doing') {
       setActiveTaskId(null);
       setPausedTaskId(null);
@@ -311,25 +305,21 @@ export const TaskManager: React.FC = () => {
     const task = tasks[taskId];
     
     if (task.isActive && !task.isPaused) {
-      // Parar timer
       setActiveTaskId(null);
       updateTask(taskId, { isActive: false });
       setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false }));
     } else {
-      // Iniciar timer - parar outros primeiro
       setActiveTaskId(null);
       setPausedTaskId(null);
       resetActiveTimer();
       resetPauseTimer();
       
-      // Parar todas as outras tarefas
       Object.keys(tasks).forEach(id => {
         if (id !== taskId) {
           updateTask(id, { isActive: false, isPaused: false });
         }
       });
 
-      // Iniciar esta tarefa
       setActiveTaskId(taskId);
       updateTask(taskId, { 
         isActive: true, 
@@ -344,14 +334,12 @@ export const TaskManager: React.FC = () => {
     const task = tasks[taskId];
     
     if (task.isPaused) {
-      // Sair da pausa
       setPausedTaskId(null);
       setActiveTaskId(taskId);
       updateTask(taskId, { isPaused: false });
       resetPauseTimer();
       setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${taskId}`]: false }));
     } else {
-      // Entrar na pausa
       setActiveTaskId(null);
       setPausedTaskId(taskId);
       updateTask(taskId, { isPaused: true });
@@ -380,14 +368,12 @@ export const TaskManager: React.FC = () => {
   }, [updateTask, activeTaskId, pausedTaskId, resetActiveTimer, resetPauseTimer]);
 
   const deleteTask = useCallback((taskId: string) => {
-    // Remove from tasks
     setTasks(prev => {
       const newTasks = { ...prev };
       delete newTasks[taskId];
       return newTasks;
     });
 
-    // Remove from columns
     setColumns(prev => {
       const newColumns = { ...prev };
       Object.keys(newColumns).forEach(columnId => {
@@ -399,7 +385,6 @@ export const TaskManager: React.FC = () => {
       return newColumns;
     });
 
-    // Clear active/paused states if necessary
     if (activeTaskId === taskId) {
       setActiveTaskId(null);
       resetActiveTimer();
@@ -444,7 +429,40 @@ export const TaskManager: React.FC = () => {
     }));
   }, []);
 
-  // Estatísticas do dia - apenas tarefas concluídas
+  const handleAddToCalendar = (title: string, description: string) => {
+    const newId = Date.now().toString();
+    const newTask: Task = {
+      id: newId,
+      title,
+      duration: 30,
+      pauseDuration: 5,
+      timeSpent: 0,
+      pauseTime: 0,
+      isActive: false,
+      isPaused: false,
+      status: 'todo',
+      createdAt: new Date(),
+    };
+
+    setTasks(prev => ({
+      ...prev,
+      [newId]: newTask,
+    }));
+
+    setColumns(prev => ({
+      ...prev,
+      todo: {
+        ...prev.todo,
+        taskIds: [...prev.todo.taskIds, newId],
+      },
+    }));
+
+    toast({
+      title: "Tarefa adicionada",
+      description: "A nota foi convertida em tarefa com sucesso.",
+    });
+  };
+
   const completedTasks = Object.values(tasks).filter(task => task.status === 'done');
   const todayStats = {
     total: Object.keys(tasks).length,
@@ -467,7 +485,7 @@ export const TaskManager: React.FC = () => {
           </div>
 
           <DragDropContext onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-3 gap-4 auto-rows-fr max-w-[1200px] mx-auto">
+            <div className="grid grid-cols-3 gap-4 h-[600px]">
               {['todo', 'doing', 'done'].map(columnId => {
                 const column = columns[columnId];
                 const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
@@ -487,6 +505,14 @@ export const TaskManager: React.FC = () => {
                   />
                 );
               })}
+              
+              <div className="col-span-2">
+                <CalendarBlock />
+              </div>
+              
+              <div className="col-span-1">
+                <NotesBlock onAddToCalendar={handleAddToCalendar} />
+              </div>
             </div>
           </DragDropContext>
         </div>
