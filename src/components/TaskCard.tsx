@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Clock, Pause, Play, Square, Timer, Hand, RotateCcw } from 'lucide-react';
+import { Clock, Pause, Play, Square, Timer, Hand, RotateCcw, Trash2 } from 'lucide-react';
 import { Task } from '../types/task';
 import { formatTime, getProgressPercentage } from '../utils/timeUtils';
 import { Button } from './ui/button';
@@ -16,6 +15,8 @@ interface TaskCardProps {
   onToggleTimer: (taskId: string) => void;
   onTogglePause: (taskId: string) => void;
   onStopTask: (taskId: string) => void;
+  onResetTime: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -26,6 +27,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onToggleTimer,
   onTogglePause,
   onStopTask,
+  onResetTime,
+  onDeleteTask,
 }) => {
   const [customTime, setCustomTime] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -46,7 +49,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const handleResetTime = () => {
-    onUpdateTask(task.id, { timeSpent: 0, pauseTime: 0 });
+    onResetTime(task.id);
+  };
+
+  const handleDeleteTask = () => {
+    onDeleteTask(task.id);
   };
 
   const handleCustomTimeSubmit = () => {
@@ -108,6 +115,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                   className="flex-1 font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
                   placeholder="Nome da tarefa..."
                 />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleDeleteTask}
+                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -137,11 +152,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                     {task.title}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {formatTime(task.timeSpent)}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-mono">
+                      {formatTime(task.timeSpent)}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleDeleteTask}
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -173,6 +198,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
                 className="flex-1 font-medium text-sm bg-transparent border-none outline-none focus:bg-background focus:border focus:border-border rounded px-1 py-1 text-foreground"
                 placeholder="Nome da tarefa..."
               />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDeleteTask}
+                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
             </div>
           </CardHeader>
           

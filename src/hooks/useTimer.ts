@@ -1,11 +1,16 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useTimer = (isActive: boolean, onTick?: (seconds: number) => void) => {
   const [seconds, setSeconds] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const reset = useCallback(() => {
     setSeconds(0);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
   const setTime = useCallback((newTime: number) => {
@@ -13,21 +18,25 @@ export const useTimer = (isActive: boolean, onTick?: (seconds: number) => void) 
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
     if (isActive) {
-      interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setSeconds(prev => {
           const newTime = prev + 1;
           onTick?.(newTime);
           return newTime;
         });
       }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isActive, onTick]);

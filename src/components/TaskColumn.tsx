@@ -14,6 +14,8 @@ interface TaskColumnProps {
   onToggleTimer: (taskId: string) => void;
   onTogglePause: (taskId: string) => void;
   onStopTask: (taskId: string) => void;
+  onResetTime: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => void;
   onAddTask: (columnId: string) => void;
 }
 
@@ -24,6 +26,8 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
   onToggleTimer,
   onTogglePause,
   onStopTask,
+  onResetTime,
+  onDeleteTask,
   onAddTask,
 }) => {
   const getColumnStyles = () => {
@@ -97,6 +101,8 @@ export const TaskColumn: React.FC<TaskColumnProps> = ({
                   onToggleTimer={onToggleTimer}
                   onTogglePause={onTogglePause}
                   onStopTask={onStopTask}
+                  onResetTime={onResetTime}
+                  onDeleteTask={onDeleteTask}
                 />
               ))}
               {provided.placeholder}

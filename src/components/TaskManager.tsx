@@ -149,7 +149,7 @@ export const TaskManager: React.FC = () => {
   }, [pausedTaskId]);
 
   // Timer para tarefa ativa
-  const { seconds: activeSeconds } = useTimer(
+  const { seconds: activeSeconds, reset: resetActiveTimer } = useTimer(
     activeTaskId !== null,
     useCallback((seconds) => {
       if (activeTaskId && !tasks[activeTaskId]?.isPaused) {
@@ -189,7 +189,7 @@ export const TaskManager: React.FC = () => {
   );
 
   // Timer para pausa
-  const { seconds: pauseSeconds } = useTimer(
+  const { seconds: pauseSeconds, reset: resetPauseTimer } = useTimer(
     pausedTaskId !== null,
     useCallback((seconds) => {
       if (pausedTaskId) {
@@ -319,6 +319,8 @@ export const TaskManager: React.FC = () => {
       // Iniciar timer - parar outros primeiro
       setActiveTaskId(null);
       setPausedTaskId(null);
+      resetActiveTimer();
+      resetPauseTimer();
       
       // Parar todas as outras tarefas
       Object.keys(tasks).forEach(id => {
@@ -336,7 +338,7 @@ export const TaskManager: React.FC = () => {
       });
       setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false }));
     }
-  }, [tasks, updateTask]);
+  }, [tasks, updateTask, resetActiveTimer, resetPauseTimer]);
 
   const togglePause = useCallback((taskId: string) => {
     const task = tasks[taskId];
@@ -346,22 +348,72 @@ export const TaskManager: React.FC = () => {
       setPausedTaskId(null);
       setActiveTaskId(taskId);
       updateTask(taskId, { isPaused: false });
+      resetPauseTimer();
       setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${taskId}`]: false }));
     } else {
       // Entrar na pausa
       setActiveTaskId(null);
       setPausedTaskId(taskId);
       updateTask(taskId, { isPaused: true });
+      resetActiveTimer();
       setFiveMinuteWarningShown(prev => ({ ...prev, [`pause-${taskId}`]: false }));
     }
-  }, [tasks, updateTask]);
+  }, [tasks, updateTask, resetActiveTimer, resetPauseTimer]);
 
   const stopTask = useCallback((taskId: string) => {
     setActiveTaskId(null);
     setPausedTaskId(null);
     updateTask(taskId, { isActive: false, isPaused: false });
+    resetActiveTimer();
+    resetPauseTimer();
     setFiveMinuteWarningShown(prev => ({ ...prev, [taskId]: false, [`pause-${taskId}`]: false }));
-  }, [updateTask]);
+  }, [updateTask, resetActiveTimer, resetPauseTimer]);
+
+  const resetTaskTime = useCallback((taskId: string) => {
+    updateTask(taskId, { timeSpent: 0, pauseTime: 0 });
+    if (activeTaskId === taskId) {
+      resetActiveTimer();
+    }
+    if (pausedTaskId === taskId) {
+      resetPauseTimer();
+    }
+  }, [updateTask, activeTaskId, pausedTaskId, resetActiveTimer, resetPauseTimer]);
+
+  const deleteTask = useCallback((taskId: string) => {
+    // Remove from tasks
+    setTasks(prev => {
+      const newTasks = { ...prev };
+      delete newTasks[taskId];
+      return newTasks;
+    });
+
+    // Remove from columns
+    setColumns(prev => {
+      const newColumns = { ...prev };
+      Object.keys(newColumns).forEach(columnId => {
+        newColumns[columnId] = {
+          ...newColumns[columnId],
+          taskIds: newColumns[columnId].taskIds.filter(id => id !== taskId)
+        };
+      });
+      return newColumns;
+    });
+
+    // Clear active/paused states if necessary
+    if (activeTaskId === taskId) {
+      setActiveTaskId(null);
+      resetActiveTimer();
+    }
+    if (pausedTaskId === taskId) {
+      setPausedTaskId(null);
+      resetPauseTimer();
+    }
+
+    toast({
+      title: "Tarefa excluída",
+      description: "A tarefa foi removida com sucesso.",
+    });
+  }, [activeTaskId, pausedTaskId, resetActiveTimer, resetPauseTimer, toast]);
 
   const addTask = useCallback((columnId: string) => {
     const newId = Date.now().toString();
@@ -415,7 +467,7 @@ export const TaskManager: React.FC = () => {
           </div>
 
           <DragDropContext onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4 auto-rows-fr max-w-[1200px] mx-auto">
               {['todo', 'doing', 'done'].map(columnId => {
                 const column = columns[columnId];
                 const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
@@ -429,6 +481,8 @@ export const TaskManager: React.FC = () => {
                     onToggleTimer={toggleTimer}
                     onTogglePause={togglePause}
                     onStopTask={stopTask}
+                    onResetTime={resetTaskTime}
+                    onDeleteTask={deleteTask}
                     onAddTask={addTask}
                   />
                 );
