@@ -131,6 +131,7 @@ export const TaskManager: React.FC = () => {
   
   const [isMinimized, setIsMinimized] = useState(false);
   const [fiveMinuteWarningShown, setFiveMinuteWarningShown] = useState<{ [key: string]: boolean }>({});
+  const [expandedBlocks, setExpandedBlocks] = useState<{ [key: string]: boolean }>({});
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -148,6 +149,14 @@ export const TaskManager: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('3fortime-pausedTask', pausedTaskId || '');
   }, [pausedTaskId]);
+
+  // Estados para expansão dos blocos
+  const toggleBlockExpansion = (blockId: string) => {
+    setExpandedBlocks(prev => ({
+      ...prev,
+      [blockId]: !prev[blockId]
+    }));
+  };
 
   // Timer para tarefa ativa
   const { seconds: activeSeconds, reset: resetActiveTimer } = useTimer(
@@ -463,6 +472,40 @@ export const TaskManager: React.FC = () => {
     });
   };
 
+  const handleCalendarTaskCreate = (taskData: { title: string; description?: string; date: Date; time?: string }) => {
+    const newId = Date.now().toString();
+    const newTask: Task = {
+      id: newId,
+      title: taskData.title,
+      duration: 30,
+      pauseDuration: 5,
+      timeSpent: 0,
+      pauseTime: 0,
+      isActive: false,
+      isPaused: false,
+      status: 'todo',
+      createdAt: new Date(),
+    };
+
+    setTasks(prev => ({
+      ...prev,
+      [newId]: newTask,
+    }));
+
+    setColumns(prev => ({
+      ...prev,
+      todo: {
+        ...prev.todo,
+        taskIds: [...prev.todo.taskIds, newId],
+      },
+    }));
+
+    toast({
+      title: "Tarefa criada",
+      description: "Tarefa do calendário adicionada à lista.",
+    });
+  };
+
   const completedTasks = Object.values(tasks).filter(task => task.status === 'done');
   const todayStats = {
     total: Object.keys(tasks).length,
@@ -485,33 +528,64 @@ export const TaskManager: React.FC = () => {
           </div>
 
           <DragDropContext onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-3 gap-4 h-[600px]">
+            {/* Grid 3x3 Bento Box Layout */}
+            <div className="grid grid-cols-3 gap-4 h-auto">
+              {/* Primeira linha - Colunas de tarefas (fixas) */}
               {['todo', 'doing', 'done'].map(columnId => {
                 const column = columns[columnId];
                 const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
 
                 return (
-                  <TaskColumn
-                    key={column.id}
-                    column={column}
-                    tasks={columnTasks}
-                    onUpdateTask={updateTask}
-                    onToggleTimer={toggleTimer}
-                    onTogglePause={togglePause}
-                    onStopTask={stopTask}
-                    onResetTime={resetTaskTime}
-                    onDeleteTask={deleteTask}
-                    onAddTask={addTask}
-                  />
+                  <div key={column.id} className="min-h-[400px]">
+                    <TaskColumn
+                      column={column}
+                      tasks={columnTasks}
+                      onUpdateTask={updateTask}
+                      onToggleTimer={toggleTimer}
+                      onTogglePause={togglePause}
+                      onStopTask={stopTask}
+                      onResetTime={resetTaskTime}
+                      onDeleteTask={deleteTask}
+                      onAddTask={addTask}
+                    />
+                  </div>
                 );
               })}
               
-              <div className="col-span-2">
-                <CalendarBlock />
+              {/* Segunda linha */}
+              <div className="min-h-[300px]">
+                <CalendarBlock 
+                  onTaskCreate={handleCalendarTaskCreate}
+                  isExpanded={expandedBlocks.calendar}
+                  onToggleExpand={() => toggleBlockExpansion('calendar')}
+                />
               </div>
               
-              <div className="col-span-1">
+              <div className="min-h-[300px]">
                 <NotesBlock onAddToCalendar={handleAddToCalendar} />
+              </div>
+              
+              <div className="min-h-[300px]">
+                <CalculatorBlock 
+                  isExpanded={expandedBlocks.calculator}
+                  onToggleExpand={() => toggleBlockExpansion('calculator')}
+                />
+              </div>
+              
+              {/* Terceira linha */}
+              <div className="min-h-[300px] col-span-2">
+                <EmailBlock 
+                  isExpanded={expandedBlocks.email}
+                  onToggleExpand={() => toggleBlockExpansion('email')}
+                />
+              </div>
+              
+              {/* Espaço extra para futuros blocos */}
+              <div className="min-h-[200px] bg-card/50 border-2 border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <div className="text-sm">Bloco disponível</div>
+                  <div className="text-xs">Arraste conteúdo aqui</div>
+                </div>
               </div>
             </div>
           </DragDropContext>

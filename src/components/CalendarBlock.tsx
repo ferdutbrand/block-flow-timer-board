@@ -5,12 +5,22 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { CalendarDays, Plus, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Plus, Edit, Trash2, Maximize2 } from 'lucide-react';
 import { AgendaItem, CalendarView } from '../types/calendar';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export const CalendarBlock: React.FC = () => {
+interface CalendarBlockProps {
+  onTaskCreate?: (task: { title: string; description?: string; date: Date; time?: string }) => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+}
+
+export const CalendarBlock: React.FC<CalendarBlockProps> = ({ 
+  onTaskCreate, 
+  isExpanded = false, 
+  onToggleExpand 
+}) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [view, setView] = useState<CalendarView>('monthly');
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
@@ -58,6 +68,16 @@ export const CalendarBlock: React.FC = () => {
       setAgendaItems(prev => [...prev, newItem]);
     }
 
+    // Criar tarefa se callback fornecido
+    if (onTaskCreate && !editingItem) {
+      onTaskCreate({
+        title: formData.title,
+        description: formData.description,
+        date: selectedDate,
+        time: formData.time
+      });
+    }
+
     setFormData({ title: '', description: '', time: '' });
     setEditingItem(null);
     setIsDialogOpen(false);
@@ -84,8 +104,9 @@ export const CalendarBlock: React.FC = () => {
   const renderCalendarView = () => {
     switch (view) {
       case 'weekly':
-        const weekStart = startOfWeek(selectedDate, { locale: ptBR });
-        const weekEnd = endOfWeek(selectedDate, { locale: ptBR });
+        // Começar na segunda-feira
+        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
+        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
         
         return (
@@ -97,7 +118,11 @@ export const CalendarBlock: React.FC = () => {
                   <div className="text-lg">{format(day, 'd')}</div>
                   <div className="mt-1 space-y-1">
                     {getItemsForDate(day).map(item => (
-                      <div key={item.id} className="text-xs bg-primary/10 p-1 rounded truncate">
+                      <div 
+                        key={item.id} 
+                        className="text-xs bg-primary/10 p-1 rounded truncate cursor-pointer hover:bg-primary/20"
+                        onClick={() => handleEditItem(item)}
+                      >
                         {item.time && <span className="font-medium">{item.time}</span>}
                         <div>{item.title}</div>
                       </div>
@@ -139,6 +164,7 @@ export const CalendarBlock: React.FC = () => {
             selected={selectedDate}
             onSelect={(date) => date && setSelectedDate(date)}
             className="w-full"
+            weekStartsOn={1}
           />
         );
     }
@@ -146,7 +172,7 @@ export const CalendarBlock: React.FC = () => {
 
   const selectedDateItems = getItemsForDate(selectedDate);
 
-  return (
+  const content = (
     <div className="bg-card p-4 rounded-lg border h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -164,6 +190,12 @@ export const CalendarBlock: React.FC = () => {
             <option value="monthly">Mensal</option>
             <option value="yearly">Anual</option>
           </select>
+          
+          {onToggleExpand && (
+            <Button size="sm" variant="ghost" onClick={onToggleExpand}>
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+          )}
           
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -245,4 +277,21 @@ export const CalendarBlock: React.FC = () => {
       )}
     </div>
   );
+
+  if (isExpanded) {
+    return (
+      <Dialog open={isExpanded} onOpenChange={onToggleExpand}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Calendário</DialogTitle>
+          </DialogHeader>
+          <div className="h-full overflow-auto">
+            {content}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return content;
 };
