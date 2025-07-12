@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Task, Column } from '../types/task';
 import { TaskColumn } from './TaskColumn';
 import { FloatingHeader } from './FloatingHeader';
@@ -9,8 +11,10 @@ import { NotesBlock } from './NotesBlock';
 import { CalculatorBlock } from './CalculatorBlock';
 import { EmailBlock } from './EmailBlock';
 import { AIChat } from './AIChat';
+import { DraggableWidget } from './DraggableWidget';
 import { useTimer } from '../hooks/useTimer';
 import { useToast } from '@/hooks/use-toast';
+import { useWidgetOrder, Widget } from '../hooks/useWidgetOrder';
 
 const initialColumns: Column[] = [
   { id: 'todo', title: 'A Fazer', taskIds: [] },
@@ -43,6 +47,14 @@ const initialTasks: Task[] = [
     status: 'todo',
     createdAt: new Date(),
   },
+];
+
+const initialWidgets: Widget[] = [
+  { id: 'calendar', component: 'CalendarBlock', position: 0 },
+  { id: 'notes', component: 'NotesBlock', position: 1 },
+  { id: 'calculator', component: 'CalculatorBlock', position: 2 },
+  { id: 'email', component: 'EmailBlock', position: 3 },
+  { id: 'ai', component: 'AIChat', position: 4 },
 ];
 
 // Audio utility functions
@@ -87,6 +99,9 @@ const playAlarmSound = () => {
 
 export const TaskManager: React.FC = () => {
   const { toast } = useToast();
+  
+  // Widget order management
+  const { widgets, moveWidget } = useWidgetOrder(initialWidgets);
   
   // Load saved data from localStorage
   const [tasks, setTasks] = useState<{ [key: string]: Task }>(() => {
@@ -161,7 +176,6 @@ export const TaskManager: React.FC = () => {
     }));
   };
 
-  // Timer para tarefa ativa
   const { seconds: activeSeconds, reset: resetActiveTimer } = useTimer(
     activeTaskId !== null,
     useCallback((seconds) => {
@@ -199,7 +213,6 @@ export const TaskManager: React.FC = () => {
     }, [activeTaskId, tasks, fiveMinuteWarningShown, toast])
   );
 
-  // Timer para pausa
   const { seconds: pauseSeconds, reset: resetPauseTimer } = useTimer(
     pausedTaskId !== null,
     useCallback((seconds) => {
@@ -509,6 +522,44 @@ export const TaskManager: React.FC = () => {
     });
   };
 
+  const renderWidget = (widget: Widget) => {
+    switch (widget.component) {
+      case 'CalendarBlock':
+        return (
+          <CalendarBlock 
+            onTaskCreate={handleCalendarTaskCreate}
+            isExpanded={expandedBlocks.calendar}
+            onToggleExpand={() => toggleBlockExpansion('calendar')}
+          />
+        );
+      case 'NotesBlock':
+        return <NotesBlock onAddToCalendar={handleAddToCalendar} />;
+      case 'CalculatorBlock':
+        return (
+          <CalculatorBlock 
+            isExpanded={expandedBlocks.calculator}
+            onToggleExpand={() => toggleBlockExpansion('calculator')}
+          />
+        );
+      case 'EmailBlock':
+        return (
+          <EmailBlock 
+            isExpanded={expandedBlocks.email}
+            onToggleExpand={() => toggleBlockExpansion('email')}
+          />
+        );
+      case 'AIChat':
+        return (
+          <AIChat 
+            isExpanded={expandedBlocks.ai}
+            onToggleExpand={() => toggleBlockExpansion('ai')}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   const completedTasks = Object.values(tasks).filter(task => task.status === 'done');
   const todayStats = {
     total: Object.keys(tasks).length,
@@ -518,87 +569,66 @@ export const TaskManager: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-4 z-50 bg-background/95 backdrop-blur border border-border rounded-lg shadow-2xl overflow-hidden">
-      <FloatingHeader 
-        isMinimized={isMinimized}
-        onToggleMinimize={() => setIsMinimized(!isMinimized)}
-      />
-      
-      {!isMinimized && (
-        <div className="p-4 h-[calc(100vh-8rem)] overflow-auto">
-          <div className="mb-4">
+    <DndProvider backend={HTML5Backend}>
+      <div className="fixed inset-4 z-50 bg-background/95 backdrop-blur border border-border rounded-lg shadow-2xl overflow-hidden">
+        <FloatingHeader 
+          isMinimized={isMinimized}
+          onToggleMinimize={() => setIsMinimized(!isMinimized)}
+        />
+        
+        {!isMinimized && (
+          <div className="p-4 h-[calc(100vh-8rem)] overflow-auto">
+            <div className="mb-4">
+              <CompactStats stats={todayStats} />
+            </div>
+
+            <DragDropContext onDragEnd={onDragEnd}>
+              <div className="grid grid-cols-3 gap-4 h-auto">
+                {/* Primeira linha - Colunas de tarefas (fixas) */}
+                {['todo', 'doing', 'done'].map(columnId => {
+                  const column = columns[columnId];
+                  const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
+
+                  return (
+                    <div key={column.id} className="min-h-[400px]">
+                      <TaskColumn
+                        column={column}
+                        tasks={columnTasks}
+                        onUpdateTask={updateTask}
+                        onToggleTimer={toggleTimer}
+                        onTogglePause={togglePause}
+                        onStopTask={stopTask}
+                        onResetTime={resetTaskTime}
+                        onDeleteTask={deleteTask}
+                        onAddTask={addTask}
+                      />
+                    </div>
+                  );
+                })}
+                
+                {/* Widgets arrastáveis */}
+                {widgets.map((widget, index) => (
+                  <DraggableWidget
+                    key={widget.id}
+                    id={widget.id}
+                    index={index}
+                    onMoveWidget={moveWidget}
+                    className="min-h-[300px]"
+                  >
+                    {renderWidget(widget)}
+                  </DraggableWidget>
+                ))}
+              </div>
+            </DragDropContext>
+          </div>
+        )}
+        
+        {isMinimized && (
+          <div className="p-4">
             <CompactStats stats={todayStats} />
           </div>
-
-          <DragDropContext onDragEnd={onDragEnd}>
-            <div className="grid grid-cols-3 gap-4 h-auto">
-              {/* Primeira linha - Colunas de tarefas (fixas) */}
-              {['todo', 'doing', 'done'].map(columnId => {
-                const column = columns[columnId];
-                const columnTasks = column.taskIds.map(taskId => tasks[taskId]);
-
-                return (
-                  <div key={column.id} className="min-h-[400px]">
-                    <TaskColumn
-                      column={column}
-                      tasks={columnTasks}
-                      onUpdateTask={updateTask}
-                      onToggleTimer={toggleTimer}
-                      onTogglePause={togglePause}
-                      onStopTask={stopTask}
-                      onResetTime={resetTaskTime}
-                      onDeleteTask={deleteTask}
-                      onAddTask={addTask}
-                    />
-                  </div>
-                );
-              })}
-              
-              {/* Segunda linha */}
-              <div className="min-h-[300px]">
-                <CalendarBlock 
-                  onTaskCreate={handleCalendarTaskCreate}
-                  isExpanded={expandedBlocks.calendar}
-                  onToggleExpand={() => toggleBlockExpansion('calendar')}
-                />
-              </div>
-              
-              <div className="min-h-[300px]">
-                <NotesBlock onAddToCalendar={handleAddToCalendar} />
-              </div>
-              
-              <div className="min-h-[300px]">
-                <CalculatorBlock 
-                  isExpanded={expandedBlocks.calculator}
-                  onToggleExpand={() => toggleBlockExpansion('calculator')}
-                />
-              </div>
-              
-              {/* Terceira linha */}
-              <div className="min-h-[300px] col-span-2">
-                <EmailBlock 
-                  isExpanded={expandedBlocks.email}
-                  onToggleExpand={() => toggleBlockExpansion('email')}
-                />
-              </div>
-
-              {/* Chat IA */}
-              <div className="min-h-[300px]">
-                <AIChat 
-                  isExpanded={expandedBlocks.ai}
-                  onToggleExpand={() => toggleBlockExpansion('ai')}
-                />
-              </div>
-            </div>
-          </DragDropContext>
-        </div>
-      )}
-      
-      {isMinimized && (
-        <div className="p-4">
-          <CompactStats stats={todayStats} />
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </DndProvider>
   );
 };

@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar } from './ui/calendar';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { CalendarDays, Plus, Edit, Trash2, Maximize2 } from 'lucide-react';
+import { CalendarDays, Plus, Edit, Trash2, Maximize2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { AgendaItem, CalendarView } from '../types/calendar';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, eachDayOfInterval, isSameDay, isToday, isSameMonth, addMonths, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ScrollArea } from './ui/scroll-area';
 
 interface CalendarBlockProps {
   onTaskCreate?: (task: { title: string; description?: string; date: Date; time?: string }) => void;
@@ -30,6 +33,9 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
     description: '',
     time: ''
   });
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1, locale: ptBR })
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem('3fortime-agenda');
@@ -88,6 +94,7 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
       description: item.description || '',
       time: item.time || ''
     });
+    setSelectedDate(item.date);
     setIsDialogOpen(true);
   };
 
@@ -99,72 +106,147 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
     return agendaItems.filter(item => isSameDay(item.date, date));
   };
 
-  const renderCalendarView = () => {
-    switch (view) {
-      case 'weekly':
-        const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
-        const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
-        const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+    } else {
+      setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+    }
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      setSelectedDate(subMonths(selectedDate, 1));
+    } else {
+      setSelectedDate(addMonths(selectedDate, 1));
+    }
+  };
+
+  const renderWeeklyView = () => {
+    const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1, locale: ptBR });
+    const weekDays = eachDayOfInterval({ start: currentWeekStart, end: weekEnd });
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigateWeek('prev')}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <h4 className="font-medium">
+              {format(currentWeekStart, 'dd MMM', { locale: ptBR })} - {format(weekEnd, 'dd MMM yyyy', { locale: ptBR })}
+            </h4>
+            <Button size="sm" variant="outline" onClick={() => navigateWeek('next')}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}>
+            Hoje
+          </Button>
+        </div>
         
-        return (
-          <div className="space-y-2">
-            <div className="grid grid-cols-7 gap-1">
-              {weekDays.map(day => (
-                <div key={day.toISOString()} className="p-2 border rounded text-center">
-                  <div className="font-medium text-sm">{format(day, 'EEE', { locale: ptBR })}</div>
-                  <div className="text-lg">{format(day, 'd')}</div>
-                  <div className="mt-1 space-y-1">
-                    {getItemsForDate(day).map(item => (
+        <div className="grid grid-cols-7 gap-1">
+          {weekDays.map(day => {
+            const dayItems = getItemsForDate(day);
+            const isCurrentDay = isToday(day);
+            
+            return (
+              <div 
+                key={day.toISOString()} 
+                className={`p-2 border rounded-lg min-h-[120px] cursor-pointer transition-colors ${
+                  isCurrentDay ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                } ${isSameDay(day, selectedDate) ? 'ring-2 ring-blue-500' : ''}`}
+                onClick={() => setSelectedDate(day)}
+              >
+                <div className="text-center mb-2">
+                  <div className="text-xs font-medium text-gray-500 uppercase">
+                    {format(day, 'EEE', { locale: ptBR })}
+                  </div>
+                  <div className={`text-lg font-semibold ${isCurrentDay ? 'text-blue-600' : ''}`}>
+                    {format(day, 'd')}
+                  </div>
+                </div>
+                
+                <ScrollArea className="h-20">
+                  <div className="space-y-1">
+                    {dayItems.map(item => (
                       <div 
                         key={item.id} 
-                        className="text-xs bg-primary/10 p-1 rounded truncate cursor-pointer hover:bg-primary/20"
-                        onClick={() => handleEditItem(item)}
+                        className="text-xs bg-primary/10 hover:bg-primary/20 p-1 rounded cursor-pointer transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditItem(item);
+                        }}
                       >
-                        {item.time && <span className="font-medium">{item.time}</span>}
-                        <div>{item.title}</div>
+                        {item.time && (
+                          <div className="font-medium text-primary flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {item.time}
+                          </div>
+                        )}
+                        <div className="truncate font-medium">{item.title}</div>
+                        {item.description && (
+                          <div className="text-gray-500 truncate">{item.description}</div>
+                        )}
                       </div>
                     ))}
                   </div>
+                </ScrollArea>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMonthlyView = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigateMonth('prev')}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <h4 className="font-medium text-lg">
+              {format(selectedDate, 'MMMM yyyy', { locale: ptBR })}
+            </h4>
+            <Button size="sm" variant="outline" onClick={() => navigateMonth('next')}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setSelectedDate(new Date())}>
+            Hoje
+          </Button>
+        </div>
+        
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={(date) => date && setSelectedDate(date)}
+          className="w-full"
+          weekStartsOn={1}
+          locale={ptBR}
+          month={selectedDate}
+          onMonthChange={setSelectedDate}
+          components={{
+            Day: ({ date, ...props }) => {
+              const dayItems = getItemsForDate(date);
+              const hasItems = dayItems.length > 0;
+              
+              return (
+                <div className="relative">
+                  <button {...props} />
+                  {hasItems && (
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case 'yearly':
-        return (
-          <div className="text-center">
-            <h3 className="text-xl font-bold mb-4">{format(selectedDate, 'yyyy')}</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 12 }, (_, i) => {
-                const month = new Date(selectedDate.getFullYear(), i, 1);
-                const monthItems = agendaItems.filter(item => 
-                  item.date.getFullYear() === selectedDate.getFullYear() && 
-                  item.date.getMonth() === i
-                );
-                
-                return (
-                  <div key={i} className="p-2 border rounded">
-                    <div className="font-medium text-sm">{format(month, 'MMM', { locale: ptBR })}</div>
-                    <div className="text-xs text-muted-foreground">{monthItems.length} tarefas</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-        
-      default:
-        return (
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={(date) => date && setSelectedDate(date)}
-            className="w-full"
-            weekStartsOn={1}
-          />
-        );
-    }
+              );
+            }
+          }}
+        />
+      </div>
+    );
   };
 
   const selectedDateItems = getItemsForDate(selectedDate);
@@ -174,18 +256,20 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarDays className="w-5 h-5" />
-          <h3 className="font-semibold">Calendário</h3>
+          <h3 className="font-semibold">Agenda</h3>
+          {agendaItems.length > 0 && (
+            <Badge variant="secondary">{agendaItems.length}</Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
           <select 
             value={view} 
             onChange={(e) => setView(e.target.value as CalendarView)}
-            className="text-sm border rounded px-2 py-1"
+            className="text-sm border rounded px-2 py-1 bg-background"
           >
             <option value="weekly">Semanal</option>
             <option value="monthly">Mensal</option>
-            <option value="yearly">Anual</option>
           </select>
           
           {onToggleExpand && (
@@ -206,25 +290,34 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {editingItem ? 'Editar Tarefa' : 'Nova Tarefa'}
+                  {editingItem ? 'Editar Evento' : 'Novo Evento'}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <Input
-                  placeholder="Título da tarefa"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                />
-                <Input
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                />
-                <Textarea
-                  placeholder="Descrição (opcional)"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Título</label>
+                  <Input
+                    placeholder="Ex: Reunião com cliente"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Horário</label>
+                  <Input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Descrição</label>
+                  <Textarea
+                    placeholder="Detalhes adicionais (opcional)"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={handleAddItem} className="flex-1">
                     {editingItem ? 'Salvar' : 'Adicionar'}
@@ -240,36 +333,45 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
       </div>
 
       <div className="flex-1 overflow-auto">
-        {renderCalendarView()}
+        {view === 'weekly' ? renderWeeklyView() : renderMonthlyView()}
       </div>
 
-      {view !== 'yearly' && selectedDateItems.length > 0 && (
+      {selectedDateItems.length > 0 && (
         <div className="mt-4 pt-4 border-t">
-          <h4 className="font-medium mb-2">
+          <h4 className="font-medium mb-2 flex items-center gap-2">
+            <CalendarDays className="w-4 h-4" />
             {format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
+            <Badge variant="outline">{selectedDateItems.length}</Badge>
           </h4>
-          <div className="space-y-2 max-h-32 overflow-auto">
-            {selectedDateItems.map(item => (
-              <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                <div className="flex-1">
-                  <div className="font-medium text-sm">
-                    {item.time && <span className="text-primary">{item.time}</span>} {item.title}
+          <ScrollArea className="max-h-32">
+            <div className="space-y-2">
+              {selectedDateItems.map(item => (
+                <div key={item.id} className="flex items-center justify-between p-2 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      {item.time && (
+                        <Badge variant="outline" className="text-xs">
+                          {item.time}
+                        </Badge>
+                      )}
+                      {item.title}
+                    </div>
+                    {item.description && (
+                      <div className="text-xs text-muted-foreground mt-1">{item.description}</div>
+                    )}
                   </div>
-                  {item.description && (
-                    <div className="text-xs text-muted-foreground">{item.description}</div>
-                  )}
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => handleEditItem(item)}>
+                      <Edit className="w-3 h-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(item.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => handleEditItem(item)}>
-                    <Edit className="w-3 h-3" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDeleteItem(item.id)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       )}
     </div>
@@ -278,11 +380,11 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
   if (isExpanded) {
     return (
       <Dialog open={isExpanded} onOpenChange={onToggleExpand}>
-        <DialogContent className="max-w-6xl max-h-[95vh] w-[95vw] h-[95vh]">
+        <DialogContent className="max-w-7xl max-h-[95vh] w-[95vw] h-[95vh]">
           <DialogHeader>
-            <DialogTitle>Calendário</DialogTitle>
+            <DialogTitle>Agenda Completa</DialogTitle>
           </DialogHeader>
-          <div className="h-full overflow-auto flex-1">
+          <div className="h-full overflow-auto flex-1 p-4">
             {content}
           </div>
         </DialogContent>
