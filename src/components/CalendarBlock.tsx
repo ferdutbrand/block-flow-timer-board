@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar } from './ui/calendar';
 import { Button } from './ui/button';
@@ -68,7 +67,6 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
       setAgendaItems(prev => [...prev, newItem]);
     }
 
-    // Criar tarefa se callback fornecido
     if (onTaskCreate && !editingItem) {
       onTaskCreate({
         title: formData.title,
@@ -104,7 +102,6 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
   const renderCalendarView = () => {
     switch (view) {
       case 'weekly':
-        // Começar na segunda-feira
         const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
         const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1, locale: ptBR });
         const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
@@ -281,11 +278,11 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
   if (isExpanded) {
     return (
       <Dialog open={isExpanded} onOpenChange={onToggleExpand}>
-        <DialogContent className="max-w-4xl h-[80vh]">
+        <DialogContent className="max-w-6xl max-h-[95vh] w-[95vw] h-[95vh]">
           <DialogHeader>
             <DialogTitle>Calendário</DialogTitle>
           </DialogHeader>
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto flex-1">
             {content}
           </div>
         </DialogContent>

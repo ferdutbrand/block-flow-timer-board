@@ -50,7 +50,7 @@ export const CalculatorBlock: React.FC<CalculatorBlockProps> = ({
       result,
       timestamp: new Date()
     };
-    setHistory(prev => [newItem, ...prev.slice(0, 19)]); // Manter apenas 20 itens
+    setHistory(prev => [newItem, ...prev.slice(0, 19)]);
   };
 
   const clearHistory = () => {
@@ -104,20 +104,11 @@ export const CalculatorBlock: React.FC<CalculatorBlockProps> = ({
         case '÷':
           result = inputValue !== 0 ? currentValue / inputValue : 0;
           break;
-        case '%':
-          result = (currentValue * inputValue) / 100;
-          break;
-        case '√':
-          result = Math.sqrt(inputValue);
-          break;
         default:
           return;
       }
 
-      const expression = operation === '√' 
-        ? `√${inputValue}` 
-        : `${currentValue} ${operation} ${inputValue}`;
-      
+      const expression = `${currentValue} ${operation} ${inputValue}`;
       addToHistory(expression, result.toString());
       
       setPreviousValue(result);
@@ -129,20 +120,20 @@ export const CalculatorBlock: React.FC<CalculatorBlockProps> = ({
   };
 
   const calculate = () => {
-    const inputValue = parseFloat(display);
-    
     if (previousValue !== null && operation) {
       performOperation('=');
+      setOperation(null);
+      setPreviousValue(null);
+      setWaitingForOperand(true);
     }
-    
-    setOperation(null);
-    setPreviousValue(null);
-    setWaitingForOperand(true);
   };
 
   const percentage = () => {
     const inputValue = parseFloat(display);
-    setDisplay((inputValue / 100).toString());
+    const result = inputValue / 100;
+    addToHistory(`${inputValue}%`, result.toString());
+    setDisplay(result.toString());
+    setWaitingForOperand(true);
   };
 
   const sqrt = () => {
@@ -255,11 +246,11 @@ export const CalculatorBlock: React.FC<CalculatorBlockProps> = ({
   if (isExpanded) {
     return (
       <Dialog open={isExpanded} onOpenChange={onToggleExpand}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] w-full">
           <DialogHeader>
             <DialogTitle>Calculadora</DialogTitle>
           </DialogHeader>
-          <div className="h-[500px]">
+          <div className="h-[600px] overflow-auto">
             {content}
           </div>
         </DialogContent>

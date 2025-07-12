@@ -8,6 +8,7 @@ import { CalendarBlock } from './CalendarBlock';
 import { NotesBlock } from './NotesBlock';
 import { CalculatorBlock } from './CalculatorBlock';
 import { EmailBlock } from './EmailBlock';
+import { AIChat } from './AIChat';
 import { useTimer } from '../hooks/useTimer';
 import { useToast } from '@/hooks/use-toast';
 
@@ -530,7 +531,6 @@ export const TaskManager: React.FC = () => {
           </div>
 
           <DragDropContext onDragEnd={onDragEnd}>
-            {/* Grid 3x3 Bento Box Layout */}
             <div className="grid grid-cols-3 gap-4 h-auto">
               {/* Primeira linha - Colunas de tarefas (fixas) */}
               {['todo', 'doing', 'done'].map(columnId => {
@@ -581,13 +581,13 @@ export const TaskManager: React.FC = () => {
                   onToggleExpand={() => toggleBlockExpansion('email')}
                 />
               </div>
-              
-              {/* Espaço extra para futuros blocos */}
-              <div className="min-h-[200px] bg-card/50 border-2 border-dashed border-border rounded-lg flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <div className="text-sm">Bloco disponível</div>
-                  <div className="text-xs">Arraste conteúdo aqui</div>
-                </div>
+
+              {/* Chat IA */}
+              <div className="min-h-[300px]">
+                <AIChat 
+                  isExpanded={expandedBlocks.ai}
+                  onToggleExpand={() => toggleBlockExpansion('ai')}
+                />
               </div>
             </div>
           </DragDropContext>
