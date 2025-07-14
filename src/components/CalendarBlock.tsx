@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar } from './ui/calendar';
 import { Button } from './ui/button';
@@ -229,19 +228,12 @@ export const CalendarBlock: React.FC<CalendarBlockProps> = ({
           locale={ptBR}
           month={selectedDate}
           onMonthChange={setSelectedDate}
-          components={{
-            Day: ({ date, ...props }) => {
-              const dayItems = getItemsForDate(date);
-              const hasItems = dayItems.length > 0;
-              
-              return (
-                <div className="relative">
-                  <button {...props} />
-                  {hasItems && (
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></div>
-                  )}
-                </div>
-              );
+          modifiers={{
+            hasEvents: (date) => getItemsForDate(date).length > 0
+          }}
+          modifiersStyles={{
+            hasEvents: {
+              position: 'relative'
             }
           }}
         />
