@@ -11,6 +11,7 @@ import { NotesBlock } from './NotesBlock';
 import { CalculatorBlock } from './CalculatorBlock';
 import { EmailBlock } from './EmailBlock';
 import { AIChat } from './AIChat';
+import { MindMapBlock } from './MindMapBlock';
 import { DraggableWidget } from './DraggableWidget';
 import { useTimer } from '../hooks/useTimer';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +56,7 @@ const initialWidgets: Widget[] = [
   { id: 'calculator', component: 'CalculatorBlock', position: 2 },
   { id: 'email', component: 'EmailBlock', position: 3 },
   { id: 'ai', component: 'AIChat', position: 4 },
+  { id: 'mindmap', component: 'MindMapBlock', position: 5 },
 ];
 
 // Audio utility functions
@@ -534,6 +536,13 @@ export const TaskManager: React.FC = () => {
         return <EmailBlock />;
       case 'AIChat':
         return <AIChat />;
+      case 'MindMapBlock':
+        return (
+          <MindMapBlock
+            isExpanded={expandedBlocks[widget.id]}
+            onToggleExpand={() => toggleBlockExpansion(widget.id)}
+          />
+        );
       default:
         return null;
     }
