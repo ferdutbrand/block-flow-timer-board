@@ -525,36 +525,15 @@ export const TaskManager: React.FC = () => {
   const renderWidget = (widget: Widget) => {
     switch (widget.component) {
       case 'CalendarBlock':
-        return (
-          <CalendarBlock 
-            onTaskCreate={handleCalendarTaskCreate}
-            isExpanded={expandedBlocks.calendar}
-            onToggleExpand={() => toggleBlockExpansion('calendar')}
-          />
-        );
+        return <CalendarBlock onTaskCreate={handleCalendarTaskCreate} />;
       case 'NotesBlock':
         return <NotesBlock onAddToCalendar={handleAddToCalendar} />;
       case 'CalculatorBlock':
-        return (
-          <CalculatorBlock 
-            isExpanded={expandedBlocks.calculator}
-            onToggleExpand={() => toggleBlockExpansion('calculator')}
-          />
-        );
+        return <CalculatorBlock />;
       case 'EmailBlock':
-        return (
-          <EmailBlock 
-            isExpanded={expandedBlocks.email}
-            onToggleExpand={() => toggleBlockExpansion('email')}
-          />
-        );
+        return <EmailBlock />;
       case 'AIChat':
-        return (
-          <AIChat 
-            isExpanded={expandedBlocks.ai}
-            onToggleExpand={() => toggleBlockExpansion('ai')}
-          />
-        );
+        return <AIChat />;
       default:
         return null;
     }

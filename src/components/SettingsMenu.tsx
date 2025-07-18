@@ -1,8 +1,10 @@
 
 import React from 'react';
-import { Settings, X } from 'lucide-react';
+import { Settings, X, Sun, Moon } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Switch } from './ui/switch';
+import { useTheme } from '../hooks/useTheme';
 
 interface SettingsMenuProps {
   isOpen: boolean;
@@ -10,6 +12,8 @@ interface SettingsMenuProps {
 }
 
 export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose }) => {
+  const { theme, toggleTheme } = useTheme();
+  
   if (!isOpen) return null;
 
   return (
@@ -34,9 +38,24 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({ isOpen, onClose }) =
           </CardHeader>
           
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="text-sm text-muted-foreground">
                 Configurações básicas do aplicativo de gerenciamento de tarefas.
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Sun className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Tema</span>
+                    <Moon className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={toggleTheme}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
